@@ -1,4 +1,5 @@
 import keras
+import numpy as np
 from keras import ops
 
 from keras_hub.src.api_export import keras_hub_export
@@ -220,6 +221,56 @@ class RetinaNetObjectDetector(ImageObjectDetector):
 
         box_pred = y_pred["bbox_regression"]
         cls_pred = y_pred["cls_logits"]
+
+        # Debug prints for encoded ground truth boxes
+        box_values = ops.convert_to_numpy(boxes)
+        large_boxes = np.where(np.abs(box_values) > 50.0)
+        if len(large_boxes[0]) > 0:
+            print("\n=== Large Encoded Ground Truth Values Detected ===")
+            print(f"Number of large values: {len(large_boxes[0])}")
+            for i in range(min(5, len(large_boxes[0]))):
+                batch_idx = large_boxes[0][i]
+                anchor_idx = large_boxes[1][i]
+                coord_idx = large_boxes[2][i]
+                value = box_values[batch_idx, anchor_idx, coord_idx]
+                coord_name = ["x", "y", "w", "h"][coord_idx]
+                print(
+                    f"GT Box - Batch: {batch_idx}, Anchor: {anchor_idx}, {coord_name}: {value:.4f}"
+                )
+            print(
+                "GT Box Stats:",
+                {
+                    "mean": np.mean(box_values),
+                    "std": np.std(box_values),
+                    "min": np.min(box_values),
+                    "max": np.max(box_values),
+                },
+            )
+
+        # Debug prints for predicted boxes
+        pred_values = ops.convert_to_numpy(box_pred)
+        large_preds = np.where(np.abs(pred_values) > 50.0)
+        if len(large_preds[0]) > 0:
+            print("\n=== Large Prediction Values Detected ===")
+            print(f"Number of large values: {len(large_preds[0])}")
+            for i in range(min(5, len(large_preds[0]))):
+                batch_idx = large_preds[0][i]
+                anchor_idx = large_preds[1][i]
+                coord_idx = large_preds[2][i]
+                value = pred_values[batch_idx, anchor_idx, coord_idx]
+                coord_name = ["x", "y", "w", "h"][coord_idx]
+                print(
+                    f"Pred Box - Batch: {batch_idx}, Anchor: {anchor_idx}, {coord_name}: {value:.4f}"
+                )
+            print(
+                "Pred Box Stats:",
+                {
+                    "mean": np.mean(pred_values),
+                    "std": np.std(pred_values),
+                    "min": np.min(pred_values),
+                    "max": np.max(pred_values),
+                },
+            )
 
         if boxes.shape[-1] != 4:
             raise ValueError(
